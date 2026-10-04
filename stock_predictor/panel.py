@@ -241,7 +241,8 @@ def decile_table(oos: pd.DataFrame) -> pd.DataFrame:
     by_date = o.groupby(["date", "dec"])["fwd"].mean().groupby("dec").mean()
     q = o.groupby("dec")["fwd"].quantile([0.1, 0.5, 0.9]).unstack()
     t = pd.DataFrame({"mean_fwd": by_date, "q10": q[0.1], "median": q[0.5], "q90": q[0.9],
-                      "hit_rate_up": o.groupby("dec")["fwd"].apply(lambda x: (x > 0).mean())})
+                      "hit_rate_up": o.groupby("dec")["fwd"].apply(lambda x: (x > 0).mean()),
+                      "hit_rate_beat_median": o.groupby("dec")["y"].mean()})
     return t
 
 
@@ -548,7 +549,14 @@ def predict_panel(cfg: PanelConfig, refresh: bool = True) -> pd.DataFrame:
     out = pd.DataFrame({"score": score}, index=x.index)
     out["pct_rank"] = out["score"].rank(pct=True)
     out["decile"] = np.ceil(out["pct_rank"] * 10).clip(1, 10).astype(int)
-    out["prob_beat_median"] = out["decile"].map(dmap["hit_rate_up"])  # P(up) of decile, OOS
+    # Out-of-sample frequency, per score decile, of beating the cross-sectional median
+    # (the training target) and of an absolute price rise.
+    if "hit_rate_beat_median" in dmap:
+        out["prob_beat_median"] = out["decile"].map(dmap["hit_rate_beat_median"])
+    else:  # model saved before this column existed
+        log.warning("Panel model metadata lacks 'hit_rate_beat_median'; retrain to populate it.")
+        out["prob_beat_median"] = np.nan
+    out["prob_up"] = out["decile"].map(dmap["hit_rate_up"])
     out["exp_return"] = out["decile"].map(dmap["mean_fwd"])
     close = prices["Close"].xs(last, level="Date").reindex(out.index).astype(float)
     out["close"] = close
@@ -579,25 +587,40 @@ def _plots(bt, oos, importance, deciles, cfg, out_dir):
         ax.plot(bt.index, (1 + bt[col]).cumprod(), label=lab)
     ax.axvline(pd.Timestamp(cfg.test_start), color="k", ls="--", lw=1)
     ax.text(pd.Timestamp(cfg.test_start), ax.get_ylim()[1] * 0.95, "  holdout →", va="top")
-    ax.set_yscale("log"); ax.legend(); ax.grid(alpha=0.3)
+    ax.set_yscale("log")
+    ax.legend()
+    ax.grid(alpha=0.3)
     ax.set_title(f"Panel model (H={cfg.horizon}d) — walk-forward out-of-sample portfolios")
-    fig.tight_layout(); fig.savefig(os.path.join(out_dir, "portfolio_equity.png"), dpi=120); plt.close(fig)
+    fig.tight_layout()
+    fig.savefig(os.path.join(out_dir, "portfolio_equity.png"), dpi=120)
+    plt.close(fig)
 
     fig, ax = plt.subplots(figsize=(8, 5))
     ax.bar(deciles.index, deciles["mean_fwd"] * 1e4, color=["tab:red"] * 3 + ["tab:gray"] * 4 + ["tab:green"] * 3)
     ax.set_xlabel("Predicted score decile (1 = worst, 10 = best)")
     ax.set_ylabel(f"Avg realized {cfg.horizon}-day return (bps)")
-    ax.set_title("Out-of-sample decile returns"); ax.grid(alpha=0.3, axis="y")
-    fig.tight_layout(); fig.savefig(os.path.join(out_dir, "decile_returns.png"), dpi=120); plt.close(fig)
+    ax.set_title("Out-of-sample decile returns")
+    ax.grid(alpha=0.3, axis="y")
+    fig.tight_layout()
+    fig.savefig(os.path.join(out_dir, "decile_returns.png"), dpi=120)
+    plt.close(fig)
 
     ic = daily_ic(oos["score"].values, oos["fwd"].values, oos["date"].values)
     fig, ax = plt.subplots(figsize=(11, 4))
     ax.plot(ic.index, ic.rolling(63).mean(), label="IC (63-day rolling mean)")
-    ax.axhline(0, color="k", lw=0.8); ax.axvline(pd.Timestamp(cfg.test_start), color="k", ls="--", lw=1)
-    ax.legend(); ax.grid(alpha=0.3); ax.set_title("Information Coefficient over time")
-    fig.tight_layout(); fig.savefig(os.path.join(out_dir, "rolling_ic.png"), dpi=120); plt.close(fig)
+    ax.axhline(0, color="k", lw=0.8)
+    ax.axvline(pd.Timestamp(cfg.test_start), color="k", ls="--", lw=1)
+    ax.legend()
+    ax.grid(alpha=0.3)
+    ax.set_title("Information Coefficient over time")
+    fig.tight_layout()
+    fig.savefig(os.path.join(out_dir, "rolling_ic.png"), dpi=120)
+    plt.close(fig)
 
     top = importance.head(25)[::-1]
     fig, ax = plt.subplots(figsize=(8, 8))
-    ax.barh(top.index, top.values); ax.set_title("Top 25 features (gain share)")
-    fig.tight_layout(); fig.savefig(os.path.join(out_dir, "feature_importance.png"), dpi=120); plt.close(fig)
+    ax.barh(top.index, top.values)
+    ax.set_title("Top 25 features (gain share)")
+    fig.tight_layout()
+    fig.savefig(os.path.join(out_dir, "feature_importance.png"), dpi=120)
+    plt.close(fig)

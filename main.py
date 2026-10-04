@@ -58,7 +58,8 @@ def print_report(res: dict):
 
     print("\n=== Backtest (out-of-sample, after costs) ===")
     bt = pd.DataFrame(res["backtest"]).T
-    cols = [c for c in ["total_return", "cagr", "ann_vol", "sharpe", "sortino", "max_drawdown", "exposure", "hit_rate", "n_trades"] if c in bt]
+    wanted = ["total_return", "cagr", "ann_vol", "sharpe", "sortino", "max_drawdown", "exposure", "hit_rate", "n_trades"]
+    cols = [c for c in wanted if c in bt]
     print(bt[cols].round(3).to_string())
 
     print("\n=== Top 10 features ===")

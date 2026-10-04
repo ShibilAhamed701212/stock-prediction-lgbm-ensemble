@@ -1,13 +1,15 @@
 """Interactive dashboard:  streamlit run app.py"""
 from __future__ import annotations
 
+from dataclasses import asdict
+
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 from plotly.subplots import make_subplots
 
 from stock_predictor.config import DEFAULT_MODELS, Config
-from stock_predictor.panel import PanelConfig, load_features, run_panel
+from stock_predictor.panel import PanelConfig, run_panel
 from stock_predictor.pipeline import run_training
 
 st.set_page_config(page_title="Stock Predictor", page_icon="📈", layout="wide")
@@ -19,13 +21,12 @@ with st.sidebar:
     mode = st.radio("Mode", ["S&P 500 Panel (Kaggle)", "Single Stock"])
     if mode == "Single Stock":
         ticker = st.text_input("Ticker", "AAPL").strip().upper()
-        market = st.text_input("Market context ticker", "SPY").strip()
+        market = st.text_input("Market ticker (blank = none)", "SPY").strip()
     else:
         st.info("Cross-sectional model on ~1.7M rows of S&P 500 data. Downloads ~95MB on first run.")
 
     horizon = st.slider("Horizon (trading days)", 1, 20, 5)
     start = st.date_input("History start", pd.Timestamp("2010-01-01"))
-    market = st.text_input("Market ticker (blank = none)", "SPY").strip()
     models = st.multiselect("Models", list(DEFAULT_MODELS), default=list(DEFAULT_MODELS))
     splits = st.slider("Walk-forward folds", 3, 12, 8)
     st.subheader("Strategy")

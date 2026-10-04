@@ -8,7 +8,6 @@ from datetime import datetime
 from typing import Optional
 
 import numpy as np
-import pandas as pd
 
 from .backtest import run_backtest
 from .config import Config
@@ -107,6 +106,12 @@ def predict_latest(
         prices, market = load_data(cfg, synthetic=synthetic)
         ds = build_dataset(prices, market, cfg.horizon, cfg.threshold)
 
+    missing = [c for c in model.feature_names_ if c not in ds.X_live.columns]
+    if missing:
+        raise ValueError(
+            f"Model expects {len(missing)} feature(s) not available now (e.g. {missing[:3]}). "
+            "Use the same --market setting as at training time, or retrain."
+        )
     x = ds.X_live.iloc[[-1]]
     each = model.predict_proba_each(x)
     p = float(model.combine(each)[0])
