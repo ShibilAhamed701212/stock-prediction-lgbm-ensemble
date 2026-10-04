@@ -8,4 +8,8 @@ joblib>=1.3
 matplotlib>=3.8
 streamlit>=1.35
 plotly>=5.20
+# S&P 500 panel model (panel-train / panel-predict)
+optuna>=3.5
+kagglehub>=0.2
+pyarrow>=14
 pytest>=8.0

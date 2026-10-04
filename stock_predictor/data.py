@@ -4,6 +4,7 @@ from __future__ import annotations
 import logging
 import os
 import time
+import zlib
 from typing import Optional, Tuple
 
 import numpy as np
@@ -99,7 +100,9 @@ def synthetic_prices(
 def load_data(cfg: Config, synthetic: bool = False) -> Tuple[pd.DataFrame, Optional[pd.DataFrame]]:
     """Return (asset_prices, market_prices_or_None)."""
     if synthetic:
-        seed = abs(hash(cfg.ticker)) % (2**31)
+        # zlib.crc32 is stable across processes (unlike hash(), which is salted per run),
+        # so `train --synthetic` and a later `predict --synthetic` see the same series.
+        seed = zlib.crc32(cfg.ticker.upper().encode()) % (2**31)
         prices = synthetic_prices(seed=seed)
         market = synthetic_prices(seed=seed + 1, drift=0.0002, base_vol=0.01) if cfg.market_ticker else None
         return prices, market

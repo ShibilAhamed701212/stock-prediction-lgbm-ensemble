@@ -11,7 +11,6 @@ import os
 from datetime import date, timedelta
 from typing import Optional, Tuple
 
-import numpy as np
 import pandas as pd
 
 log = logging.getLogger(__name__)
