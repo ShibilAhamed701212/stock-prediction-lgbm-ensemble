@@ -111,7 +111,7 @@ Non-US tickers use Yahoo suffixes, e.g. `RELIANCE.NS --market ^NSEI`. `predict` 
 | `--models` | `logreg rf et xgb lgbm` | Any subset of base models |
 | `--splits` | `8` | Walk-forward folds |
 | `--long-threshold` | `0.55` | Go long when P(up) ≥ this |
-| `--short-threshold` | `0.45` | Short (if allowed) when P(up) ≤ this |
+| `--short-threshold` | `0.45` | Short (if allowed) when P(up) ≤ this; `binary` sizing only (`scaled` sizes shorts symmetrically from 0.5) |
 | `--allow-short` | off | Enable short positions |
 | `--sizing` | `binary` | `binary` (all-in/out) or `scaled` (by confidence) |
 | `--cost-bps` | `5` | Cost per unit of turnover in basis points |
@@ -195,7 +195,7 @@ The IC is positive but not statistically significant, and after 5 bps costs the 
 
 ```bash
 pip install -r requirements.txt ruff
-pytest -q        # 11 tests, offline, ~30 s
+pytest -q        # 12 tests, offline, ~30 s
 ruff check .
 ```
 

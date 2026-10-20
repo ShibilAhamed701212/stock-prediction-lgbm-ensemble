@@ -109,6 +109,19 @@ def main(argv=None):
     logging.basicConfig(level=logging.INFO if args.verbose else logging.WARNING,
                         format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 
+    try:
+        _dispatch(args)
+    except (FileNotFoundError, ValueError, RuntimeError) as exc:
+        # Expected user-facing failures (no trained model, unknown ticker, ...): no traceback
+        # unless --verbose was given.
+        if args.verbose:
+            raise
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    return 0
+
+
+def _dispatch(args):
     if args.cmd == "train":
         res = run_training(_cfg(args, args.ticker), synthetic=args.synthetic, make_plots=not args.no_plots)
         print_report(res)
@@ -165,5 +178,6 @@ def main(argv=None):
             print("\nBottom 10 (Short / Sell):")
             print(df.tail(10)[cols].to_string(index=False))
 
+
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

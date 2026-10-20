@@ -77,3 +77,16 @@ def test_panel_decile_table_reports_beat_median_rate():
     assert (t["hit_rate_up"] == 0).all()
     assert t.loc[10, "hit_rate_beat_median"] == 1.0
     assert t.loc[1, "hit_rate_beat_median"] == 0.0
+
+
+def test_cli_reports_user_errors_without_traceback(tmp_path, monkeypatch, capsys):
+    """Predicting before training used to dump a FileNotFoundError traceback."""
+    import main
+
+    monkeypatch.chdir(tmp_path)
+    assert main.main(["predict", "--ticker", "NOPE", "--synthetic"]) == 1
+    err = capsys.readouterr().err
+    assert err.startswith("error: No trained model")
+    assert "Traceback" not in err
+    with pytest.raises(FileNotFoundError):  # --verbose keeps the full traceback for debugging
+        main.main(["predict", "--ticker", "NOPE", "--synthetic", "-v"])
