@@ -11,6 +11,7 @@ from sklearn.metrics import accuracy_score, brier_score_loss, log_loss, roc_auc_
 from .config import Config
 from .features import Dataset
 from .models import EnsembleClassifier
+from .errors import UserValueError
 
 log = logging.getLogger(__name__)
 
@@ -25,7 +26,7 @@ def walk_forward_splits(
     """
     test_size = (n - min_train_size) // n_splits
     if test_size < 20:
-        raise ValueError(f"Not enough data for {n_splits} splits (n={n}, min_train={min_train_size}).")
+        raise UserValueError(f"Not enough data for {n_splits} splits (n={n}, min_train={min_train_size}).")
     for k in range(n_splits):
         test_start = min_train_size + k * test_size
         test_end = n if k == n_splits - 1 else test_start + test_size

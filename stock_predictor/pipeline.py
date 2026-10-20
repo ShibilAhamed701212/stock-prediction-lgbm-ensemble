@@ -15,6 +15,7 @@ from .data import load_data
 from .features import build_dataset
 from .models import EnsembleClassifier
 from .validation import walk_forward_evaluate
+from .errors import ModelNotFoundError, UserValueError
 
 log = logging.getLogger(__name__)
 
@@ -99,7 +100,7 @@ def predict_latest(
     if model is None:
         path = _model_path(cfg)
         if not os.path.exists(path):
-            raise FileNotFoundError(f"No trained model at {path}. Run `train` first.")
+            raise ModelNotFoundError(f"No trained model at {path}. Run `train` first.")
         model, meta = EnsembleClassifier.load(path)
         synthetic = synthetic or meta.get("synthetic", False)
     if ds is None:
@@ -108,7 +109,7 @@ def predict_latest(
 
     missing = [c for c in model.feature_names_ if c not in ds.X_live.columns]
     if missing:
-        raise ValueError(
+        raise UserValueError(
             f"Model expects {len(missing)} feature(s) not available now (e.g. {missing[:3]}). "
             "Use the same --market setting as at training time, or retrain."
         )

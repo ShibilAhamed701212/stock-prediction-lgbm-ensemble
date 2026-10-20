@@ -11,6 +11,7 @@ import numpy as np
 import pandas as pd
 
 from .config import Config
+from .errors import UserValueError
 
 log = logging.getLogger(__name__)
 
@@ -58,7 +59,7 @@ def download_prices(
     log.info("Downloading %s from Yahoo Finance ...", ticker)
     raw = yf.Ticker(ticker).history(start=start, end=end, auto_adjust=True)
     if raw is None or raw.empty:
-        raise ValueError(f"No data returned for ticker '{ticker}'. Check the symbol / network.")
+        raise UserValueError(f"No data returned for ticker '{ticker}'. Check the symbol / network.")
     df = _clean(raw)
     os.makedirs(data_dir, exist_ok=True)
     df.to_csv(path)

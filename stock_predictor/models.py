@@ -13,6 +13,8 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
+from .errors import UserRuntimeError, UserValueError
+
 log = logging.getLogger(__name__)
 
 
@@ -49,7 +51,7 @@ def make_model(name: str, random_state: int = 42):
             subsample=0.8, subsample_freq=1, colsample_bytree=0.7, min_child_samples=40,
             reg_lambda=5.0, random_state=random_state, verbose=-1, n_jobs=-1,
         )
-    raise ValueError(f"Unknown model '{name}'. Choose from: logreg, rf, et, xgb, lgbm")
+    raise UserValueError(f"Unknown model '{name}'. Choose from: logreg, rf, et, xgb, lgbm")
 
 
 def available_models(names: Iterable[str], random_state: int = 42) -> list:
@@ -64,7 +66,7 @@ def available_models(names: Iterable[str], random_state: int = 42) -> list:
         except Exception as exc:  # ImportError, missing libomp, etc.
             log.warning("Skipping model '%s' (%s)", n, exc)
     if not ok:
-        raise RuntimeError("No models available.")
+        raise UserRuntimeError("No models available.")
     return ok
 
 

@@ -90,3 +90,22 @@ def test_cli_reports_user_errors_without_traceback(tmp_path, monkeypatch, capsys
     assert "Traceback" not in err
     with pytest.raises(FileNotFoundError):  # --verbose keeps the full traceback for debugging
         main.main(["predict", "--ticker", "NOPE", "--synthetic", "-v"])
+
+
+def test_cli_scan_fails_when_every_ticker_fails(tmp_path, monkeypatch, capsys):
+    import main
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(main, "run_training", lambda *a, **k: (_ for _ in ()).throw(ValueError("boom")))
+    assert main.main(["scan", "--tickers", "AAA", "BBB", "--synthetic", "--no-plots"]) == 1
+    assert "every ticker failed" in capsys.readouterr().err
+
+
+def test_cli_keeps_traceback_for_internal_errors(tmp_path, monkeypatch):
+    """Only expected user errors are shortened; a bug elsewhere must still raise."""
+    import main
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(main, "predict_latest", lambda *a, **k: (_ for _ in ()).throw(ValueError("internal bug")))
+    with pytest.raises(ValueError, match="internal bug"):
+        main.main(["predict", "--ticker", "X", "--synthetic"])
