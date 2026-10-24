@@ -13,6 +13,8 @@ from typing import Optional, Tuple
 
 import pandas as pd
 
+from .errors import UserRuntimeError
+
 log = logging.getLogger(__name__)
 
 KAGGLE_DATASET = "andrewmvd/sp-500-stocks"
@@ -88,7 +90,7 @@ def fetch_recent_yahoo(symbols, lookback_days: int = 550) -> pd.DataFrame:
     raw = yf.download(yf_syms, start=start, auto_adjust=True, group_by="column",
                       progress=False, threads=True)
     if raw is None or raw.empty:
-        raise RuntimeError("Yahoo download returned no data.")
+        raise UserRuntimeError("Yahoo download returned no data.")
     long = raw.stack(level=1, future_stack=True).reset_index()
     long.columns = [str(c) for c in long.columns]
     long = long.rename(columns={"Ticker": "Symbol", "level_1": "Symbol"})

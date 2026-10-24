@@ -11,6 +11,7 @@ from typing import Optional
 
 import numpy as np
 import pandas as pd
+from .errors import UserValueError
 
 
 # ----------------------------------------------------------------------------
@@ -182,7 +183,7 @@ def build_dataset(
     X_live = feats[complete]
     labeled = complete & y.notna()
     if labeled.sum() < 300:
-        raise ValueError(
+        raise UserValueError(
             f"Only {int(labeled.sum())} usable rows after feature warm-up; need more history (≥ ~2.5 years)."
         )
     return Dataset(

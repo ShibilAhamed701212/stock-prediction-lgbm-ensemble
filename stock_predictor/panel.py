@@ -33,6 +33,7 @@ from sklearn.metrics import roc_auc_score
 
 from .features import build_features
 from .kaggle_data import DEFAULT_VERSION, fetch_recent_yahoo, load_panel
+from .errors import ModelNotFoundError
 
 log = logging.getLogger(__name__)
 
@@ -526,7 +527,7 @@ def run_panel(cfg: PanelConfig, make_plots: bool = True) -> dict:
 def load_panel_model(cfg: PanelConfig):
     path = os.path.join(cfg.model_dir, f"{cfg.tag}.txt")
     if not os.path.exists(path):
-        raise FileNotFoundError(f"No panel model at {path}. Run `python main.py panel-train` first.")
+        raise ModelNotFoundError(f"No panel model at {path}. Run `python main.py panel-train` first.")
     with open(os.path.join(cfg.model_dir, f"{cfg.tag}_meta.json")) as fh:
         meta = json.load(fh)
     return lgb.Booster(model_file=path), meta

@@ -17,6 +17,7 @@ import sys
 import pandas as pd
 
 from stock_predictor.config import DEFAULT_MODELS, Config
+from stock_predictor.errors import UserError
 from stock_predictor.pipeline import predict_latest, run_training
 
 
@@ -109,6 +110,18 @@ def main(argv=None):
     logging.basicConfig(level=logging.INFO if args.verbose else logging.WARNING,
                         format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 
+    try:
+        return _dispatch(args)
+    except UserError as exc:
+        # Expected user-facing failures (no trained model, unknown ticker, ...): no traceback
+        # unless --verbose was given.
+        if args.verbose:
+            raise
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+
+
+def _dispatch(args):
     if args.cmd == "train":
         res = run_training(_cfg(args, args.ticker), synthetic=args.synthetic, make_plots=not args.no_plots)
         print_report(res)
@@ -137,6 +150,9 @@ def main(argv=None):
             df = pd.DataFrame(rows).sort_values("prob_up", ascending=False)
             print("\n=== Scan results (sorted by P(up)) ===")
             print(df.to_string(index=False))
+        else:
+            print("error: every ticker failed; see messages above", file=sys.stderr)
+            return 1
     elif args.cmd == "panel-train":
         from stock_predictor.panel import PanelConfig, run_panel
         cfg = PanelConfig(horizon=args.horizon, n_trials=args.tune_trials, cost_bps=args.cost_bps)
@@ -165,5 +181,8 @@ def main(argv=None):
             print("\nBottom 10 (Short / Sell):")
             print(df.tail(10)[cols].to_string(index=False))
 
+    return 0
+
+
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
